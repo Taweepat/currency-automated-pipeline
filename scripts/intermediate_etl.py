@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 
-# DB_PATH = "../data/currency_warehouse.db"
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "currency_warehouse.db")
 API_URL = "https://v6.exchangerate-api.com/v6/ca5c46dfb375fc89c24314ab/latest/USD"
 
@@ -55,9 +54,6 @@ def run_etl():
                     "(currency TEXT, rate REAL, fetch_time TEXT, pct_from_avg REAL, market_signal TEXT)"
                 )
             try:
-                # baseline = rate ก่อนหน้าครั้งล่าสุดของแต่ละสกุลเงิน (LAG)
-                # เทียบ rate ปัจจุบันกับรันก่อนหน้า เพื่อเห็น % การเปลี่ยนแปลงระหว่างรัน
-                # ถ้ายังไม่มีข้อมูลเก่า ใช้ rate ปัจจุบันเป็น baseline (→ pct = 0)
                 df_historical = pd.read_sql_query(
                     """
                     WITH ranked AS (
@@ -74,7 +70,6 @@ def run_etl():
 
                 df_merged = pd.merge(df_current, df_historical, on="currency", how="left")
 
-                # ถ้ายังไม่มีข้อมูลเก่า ใช้ rate ปัจจุบันเป็น baseline (→ pct = 0)
                 df_merged["avg_rate"] = df_merged["avg_rate"].fillna(df_merged["rate"])
 
                 # Avoid division by zero
@@ -96,7 +91,6 @@ def run_etl():
 
                 df_merged["market_signal"] = df_merged.apply(generate_signal, axis=1)
 
-                # Copy computed columns back to df_current using index alignment
                 df_current = df_current.assign(
                     pct_from_avg=df_merged["pct_from_avg"].values,
                     market_signal=df_merged["market_signal"].values,
